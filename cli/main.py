@@ -5,7 +5,6 @@ import click
 
 import frameworks  # noqa: F401 # pylint: disable=unused-import
 from core.logging import get_logger, setup_logging
-from core.memory import InMemoryMemory
 from core.registry import AGENT_REGISTRY, get_agent
 
 # configure logging
@@ -37,9 +36,6 @@ async def _chat_loop(agent_name: str, dialog_id: str) -> None:
         logger.error("Agent not found: %s", exc)
         raise SystemExit(1) from exc
 
-    memory = InMemoryMemory()
-    print(f"Interactive chat with agent='{agent_name}', dialog_id='{dialog_id}'. Type 'exit' to quit.")
-
     while True:
         user_prompt = click.style("User> ", fg="blue", bold=True)
         user_text = input(user_prompt).strip()
@@ -49,9 +45,7 @@ async def _chat_loop(agent_name: str, dialog_id: str) -> None:
             print("Bye!")
             break
 
-        await memory.append(dialog_id, role="user", text=user_text)
-        response = await agent_obj.chat(user_text, dialog_id=dialog_id)
-        await memory.append(dialog_id, role="assistant", text=response)
+        response = await agent_obj.chat(message=user_text, dialog_id=dialog_id)
 
         assistant_prompt = click.style("Assistant> ", fg="green", bold=True)
         print(f"{assistant_prompt}{response}")

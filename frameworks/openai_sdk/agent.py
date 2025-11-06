@@ -1,10 +1,12 @@
-from typing import Optional
+from typing import Any, Dict, List, Optional, cast
 
 from openai import APIError, AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
 
 from config.settings import settings
 from core.base_agent import BaseAgent
 from core.logging import get_logger
+from core.memory import BaseMemory
 
 logger = get_logger(__name__)
 
@@ -15,25 +17,14 @@ class OpenAISDKAgent(BaseAgent):
     and conforming to the BaseAgent interface.
     """
 
-    def __init__(self):
-        # Validate required settings
-        if not settings.OPENAI_API_URL:
-            raise ValueError("OPENAI_API_URL must be set in settings")
-        if not settings.OPENAI_API_KEY:
-            raise ValueError("OPENAI_API_KEY must be set in settings")
-        if not settings.LLM_MODEL_NAME:
-            raise ValueError("LLM_MODEL_NAME must be set in settings")
-
-        # Type narrowing: after validation, these are guaranteed to be str
-        assert settings.OPENAI_API_URL is not None
-        assert settings.OPENAI_API_KEY is not None
-        assert settings.LLM_MODEL_NAME is not None
+    def __init__(self, memory: BaseMemory):
 
         # Use AsyncOpenAI for async calls
         self.client = AsyncOpenAI(
             base_url=settings.OPENAI_API_URL,
             api_key=settings.OPENAI_API_KEY,
         )
+        self.memory = memory
         self.model: str = settings.LLM_MODEL_NAME
         self.temperature = settings.LLM_TEMPERATURE
         self.max_tokens = settings.LLM_MAX_TOKENS
@@ -44,15 +35,22 @@ class OpenAISDKAgent(BaseAgent):
         """
         Sends a request to the LLM and returns the response asynchronously.
         """
+        if not dialog_id:
+            dialog_id = "default"
+
         logger.info("OpenAISDKAgent.chat called for dialog_id=%s with message: '%s'", dialog_id, message)
+        history = await self.memory.get_history(dialog_id)
+        messages_for_llm: List[Dict[str, Any]] = [
+            {"role": "system", "content": self.system_prompt},
+            *history,
+            {"role": "user", "content": message},
+        ]
         try:
             logger.debug("🧠 Calling LLM...")
+
             response = await self.client.chat.completions.create(
                 model=self.model,
-                messages=[
-                    {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": message},
-                ],
+                messages=cast(List[ChatCompletionMessageParam], messages_for_llm),
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
             )
@@ -62,7 +60,12 @@ class OpenAISDKAgent(BaseAgent):
                 logger.warning("Received no content from LLM for dialog_id=%s", dialog_id)
                 return "Error: Received no content from LLM."
 
-            return content.strip()
+            content = content.strip()
+
+            await self.memory.append(dialog_id, "user", message)
+            await self.memory.append(dialog_id, "assistant", content)
+
+            return content
 
         except APIError as e:
             # Handle OpenAI API errors (connection, authentication, rate limits, etc.)

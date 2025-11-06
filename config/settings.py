@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,9 +7,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # OpenAI and LLM credentials and connection settings
-    OPENAI_API_URL: Optional[str] = None
-    OPENAI_API_KEY: Optional[str] = None
-    LLM_MODEL_NAME: Optional[str] = None
+    OPENAI_API_URL: str
+    OPENAI_API_KEY: str
+    LLM_MODEL_NAME: str
 
     # Generation parameters
     LLM_TEMPERATURE: float = 0.7
@@ -22,4 +20,4 @@ class Settings(BaseSettings):
 
 
 # Create a single instance of settings for the entire application
-settings = Settings()
+settings = Settings()  # type: ignore
