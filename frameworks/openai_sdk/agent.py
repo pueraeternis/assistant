@@ -42,37 +42,43 @@ class OpenAISDKAgent(BaseAgent):
             logger.info("   ... with tools: %s", list(self.tools.keys()))
 
     def _construct_system_prompt(self, base_prompt: str) -> str:
-        """Dynamically builds the system prompt including tool descriptions."""
+        """Dynamically builds the system prompt with a clear, structured order of instructions."""
 
+        # Step 1: Define the base role (who are you?)
+        prompt_parts = [base_prompt]
+
+        # Step 2: Add context (what is the current situation?)
         current_date = datetime.now().strftime("%A, %d %B %Y")
-        system_prompt_with_date = (
-            f"Current date is {current_date}. Your internal knowledge is cut off in early 2024. "
-            f"You MUST use tools for any questions about events, news, or specific facts "
-            f"from mid-2024 onwards. Do not answer from memory for recent topics. {base_prompt}"
-        )
+        prompt_parts.append(f"Current date is {current_date}.")
 
+        # Step 3: If there are no tools, we finish here.
         if not self.tools:
-            return system_prompt_with_date
+            return "\n\n".join(prompt_parts)
 
-        # Format tool descriptions for the LLM
+        # Step 4: Describe capabilities (what resources do you have?)
         tool_descriptions = "\n\n".join([f"- {tool.name}: {tool.description}" for tool in self.tools.values()])
+        prompt_parts.append(f"YOU HAVE ACCESS TO THE FOLLOWING TOOLS:\n{tool_descriptions}")
 
-        tool_instructions = f"""
-        YOU HAVE ACCESS TO THE FOLLOWING TOOLS:
-        {tool_descriptions}
+        # Step 5: Give a strict instruction (what are you required to do?)
+        # Combine the rule and the format into one final block of instructions.
+        final_instructions = (
+            "Your internal knowledge is cut off in early 2024. "
+            "You MUST use your tools for any questions about events, news, or specific facts from mid-2024 onwards. "
+            "Do not answer from memory for recent topics.\n\n"
+            "To use a tool, respond in the following JSON format inside <tool_call> tags. "
+            "The tool's description specifies the exact argument names it expects.\n\n"
+            "Example format for a tool call:\n"
+            "<tool_call>\n"
+            "{\n"
+            '  "tool_name": "NameOfTheTool",\n'
+            '  "arg_name": "value"\n'
+            "}\n"
+            "</tool_call>"
+        )
+        prompt_parts.append(final_instructions)
 
-        To use a tool, you MUST respond in the following JSON format inside <tool_call> tags.
-        The tool's description specifies the exact argument names it expects.
-
-        Example format for a tool call:
-        <tool_call>
-        {{
-          "tool_name": "NameOfTheTool",
-          "arg1_name": "value1"
-        }}
-        </tool_call>
-        """
-        return f"{system_prompt_with_date}\n{tool_instructions}"
+        # Assemble the final prompt
+        return "\n\n".join(prompt_parts)
 
     async def chat(self, message: str, dialog_id: Optional[str] = None) -> str:
         """
