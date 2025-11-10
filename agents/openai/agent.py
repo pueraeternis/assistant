@@ -15,7 +15,7 @@ from core.memory import BaseMemory
 logger = get_logger(__name__)
 
 
-class OpenAISDKAgent(BaseAgent):
+class OpenAIAgent(BaseAgent):
     """
     Agent implemented using the standard asynchronous OpenAI SDK.
     It supports a Reason-Act (ReAct) loop to use tools.
@@ -37,7 +37,7 @@ class OpenAISDKAgent(BaseAgent):
         # Create a system prompt that includes tool descriptions
         self.system_prompt = self._construct_system_prompt(settings.SYSTEM_PROMPT)
 
-        logger.info("🤖 OpenAISDKAgent initialized for model: %s", self.model)
+        logger.info("🤖 OpenAIAgent initialized for model: %s", self.model)
         if self.tools:
             logger.info("   ... with tools: %s", list(self.tools.keys()))
 

@@ -24,7 +24,7 @@ def cli() -> None:
 
 
 @cli.command()
-@click.option("--agent", default="openai_sdk", type=click.Choice(AVAILABLE_AGENTS), help="Agent to use")
+@click.option("--agent", default="openai", type=click.Choice(AVAILABLE_AGENTS), help="Agent to use")
 @click.option("--dialog-id", default="default", help="Dialog/session id")
 def chat(agent: str, dialog_id: str) -> None:
     """Start interactive chat loop with the selected agent."""
