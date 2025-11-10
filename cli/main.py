@@ -9,13 +9,18 @@ from core.logging import get_logger, setup_logging
 from core.registry import AGENT_REGISTRY, get_agent
 from tools.browse import BrowseTool
 from tools.internet_search import InternetSearchTool
+from tools.vector_search import VectorSearchTool
 
 # configure logging
 setup_logging()
 logger = get_logger(__name__)
 
 AVAILABLE_AGENTS = list(AGENT_REGISTRY.keys())
-AVAILABLE_TOOLS: List[BaseTool] = [InternetSearchTool(), BrowseTool()]
+AVAILABLE_TOOLS: List[BaseTool] = [
+    InternetSearchTool(),
+    BrowseTool(),
+    VectorSearchTool(),
+]
 
 
 @click.group()
