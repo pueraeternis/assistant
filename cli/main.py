@@ -18,7 +18,7 @@ from tools.vector_search import VectorSearchTool
 setup_logging()
 logger = get_logger(__name__)
 
-AVAILABLE_AGENTS = list(AGENT_REGISTRY.keys())
+AVAILABLE_ROLES = list(AGENT_REGISTRY.keys())
 AVAILABLE_TOOLS: List[BaseTool] = [
     InternetSearchTool(),
     BrowseTool(),
@@ -33,19 +33,19 @@ def cli() -> None:
 
 
 @cli.command()
-@click.option("--agent", default="openai", type=click.Choice(AVAILABLE_AGENTS), help="Agent to use")
+@click.option("--role", default="assistant", type=click.Choice(AVAILABLE_ROLES), help="The role for the agent to play.")
 @click.option("--dialog-id", default="default", help="Dialog/session id")
-def chat(agent: str, dialog_id: str) -> None:
-    """Start interactive chat loop with the selected agent."""
-    asyncio.run(_chat_loop(agent_name=agent, dialog_id=dialog_id))
+def chat(role: str, dialog_id: str) -> None:
+    """Start interactive chat loop with the selected agent role."""
+    asyncio.run(_chat_loop(role_name=role, dialog_id=dialog_id))
 
 
-async def _chat_loop(agent_name: str, dialog_id: str) -> None:
+async def _chat_loop(role_name: str, dialog_id: str) -> None:
     """Interactive loop. Type exit/quit to finish."""
     try:
-        agent_obj = get_agent(agent_name, tools=AVAILABLE_TOOLS)
+        agent_obj = get_agent(role_name, tools=AVAILABLE_TOOLS)
     except KeyError as exc:
-        logger.error("Agent not found: %s", exc)
+        logger.error("Agent role not found: %s", exc)
         raise SystemExit(1) from exc
 
     while True:
